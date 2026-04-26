@@ -1,0 +1,2 @@
+_target_: src.cache.SlidingWindowCache
+window_size: 32
