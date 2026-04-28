@@ -107,10 +107,12 @@ class SlidingWindowCache(dCache):
         G = new_frame.generated_tokens.size(-1)
         device = new_frame.generated_tokens.device
 
+        active_indices = torch.where(self.active_seq_mask)[0]
+        B_active = len(active_indices)
+
         remaining_mask = (
             new_frame.generated_tokens[self.active_seq_mask] == self.mask_token_id
         )
-        B_active = remaining_mask.size(0)
 
         response_q = torch.zeros(
             (B_active, G), dtype=torch.bool, device=device
@@ -121,6 +123,16 @@ class SlidingWindowCache(dCache):
                 continue
             window_positions = positions[:self.window_size]
             response_q[i, window_positions] = True
+
+        transfer_src_index = (
+            delta.transfer_src_index
+            if delta.transfer_src_index is not None
+            else delta.transfer_index
+        )
+        for idx_in_active, batch_idx in enumerate(active_indices.tolist()):
+            src_idx = transfer_src_index[batch_idx]
+            if src_idx.numel() > 0:
+                response_q[idx_in_active, src_idx] = True
 
         q_mask = F.pad(response_q, (P, 0), value=False)
 

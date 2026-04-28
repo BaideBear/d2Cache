@@ -114,7 +114,7 @@ class SlidingWindowCache(dCache):
 #### 2.2.2 核心算法：窗口位置计算 (on\_step\_end)
 
 ```
-输入：new_frame (应用 delta 后的帧)
+输入：new_frame (应用 delta 后的帧), delta (刚应用的变化)
 输出：self.active_q_mask
 
 对于每个活跃序列 i:
@@ -127,9 +127,17 @@ class SlidingWindowCache(dCache):
   3. 取前 W 个 mask 位置（按索引升序）:
      window_positions = positions[:window_size]
   
-  4. 将 prompt 部分全部加入 Q 集:
+  4. 将窗口位置设为 True:
+     response_q[i, window_positions] = True
+
+  5. 将被本步解码的 token 也加入 Q 集（关键！）:
+     → 因为它们从 MASK 变为真实 token，embedding 变了
+     → K、V 从 MASK 状态变为真实 token 状态，必须重新计算
+     response_q[i, delta.transfer_index[i]] = True
+
+  6. 将 prompt 部分全部加入 Q 集:
      q_mask[i, :prompt_length] = True
-     q_mask[i, prompt_length + window_positions] = True
+     q_mask[i, prompt_length + response_q_indices] = True
 ```
 
 #### 2.2.3 与解码流程的交互
