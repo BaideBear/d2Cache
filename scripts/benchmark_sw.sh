@@ -15,6 +15,10 @@
 #   bash scripts/benchmark_sw.sh --quick                      # 快速测试(每数据集10条)
 #   bash scripts/benchmark_sw.sh --only-sw                    # 仅测试SW不同窗口大小
 # ============================================================================
+CUDA_VISIBLE_DEVICES=1
+export CUDA_VISIBLE_DEVICES
+LLADA_INST_PATH=/data1/gx/Sparse-dLLM/LLaDA-8B-Instruct/
+export LLADA_INST_PATH
 
 set -euo pipefail
 
@@ -69,7 +73,7 @@ if $ONLY_SW; then
     done
 else
     CONFIG_NAMES["NoCache"]="NoCache"
-    CONFIG_ARGS["NoCache"]="cache=null"
+    CONFIG_ARGS["NoCache"]=""
 
     CONFIG_NAMES["PrefixCache"]="PrefixCache"
     CONFIG_ARGS["PrefixCache"]="cache=prefix"

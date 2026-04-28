@@ -9,6 +9,10 @@
 #   bash scripts/benchmark_sw_quick.sh
 #   bash scripts/benchmark_sw_quick.sh --model llada-base
 # ============================================================================
+CUDA_VISIBLE_DEVICES=1
+export CUDA_VISIBLE_DEVICES
+LLADA_INST_PATH=/data1/gx/Sparse-dLLM/LLaDA-8B-Instruct/
+export LLADA_INST_PATH
 
 set -euo pipefail
 
@@ -90,7 +94,7 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo " 基线对比"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-run_test "NoCache"        "cache=null"
+run_test "NoCache"        ""
 run_test "PrefixCache"    "cache=prefix"
 run_test "SW_W16"         "cache=sw cache.window_size=16"
 run_test "SW_W32"         "cache=sw cache.window_size=32"

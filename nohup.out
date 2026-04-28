@@ -1,0 +1,110 @@
+============================================
+ SlidingWindowCache 快速验证
+============================================
+模型:       llada-inst
+数据集:     humaneval
+样本数:     10
+============================================
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ 基线对比
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+▶ [NoCache]
+  args: 
+  output: benchmark_results/quick/llada-inst/NoCache/20260428_122020
+[2026-04-28 12:21:02,345][lm_eval.evaluator][INFO] - Running generate_until requests
+Generating...:   0%|          | 0/10 [00:00<?, ?it/s]Generating...:  10%|█         | 1/10 [01:43<15:30, 103.38s/it]Generating...:  20%|██        | 2/10 [03:26<13:44, 103.12s/it]Generating...:  30%|███       | 3/10 [04:50<11:01, 94.47s/it] Generating...:  40%|████      | 4/10 [06:33<09:47, 97.88s/it]Generating...:  50%|█████     | 5/10 [08:16<08:19, 99.87s/it]Generating...:  60%|██████    | 6/10 [09:42<06:19, 94.90s/it]Generating...:  70%|███████   | 7/10 [11:25<04:52, 97.55s/it]Generating...:  80%|████████  | 8/10 [12:50<03:06, 93.49s/it]Generating...:  90%|█████████ | 9/10 [14:33<01:36, 96.67s/it]Generating...: 100%|██████████| 10/10 [15:59<00:00, 93.25s/it]Generating...: 100%|██████████| 10/10 [15:59<00:00, 95.93s/it]
+2026-04-28 12:37:10.084 | INFO     | __main__:main:84 - {'humaneval': {'alias': 'humaneval',
+               'name': 'humaneval',
+               'pass@1,create_test': np.float64(0.6),
+               'pass@1_stderr,create_test': 0.1632993161855452,
+               'sample_len': 10}}
+2026-04-28 12:37:10.084 | INFO     | __main__:main:85 - Throughput: 5.04 tokens/sec, Tokens per step: 0.99 tokens/step (full: 5.45 tokens/sec, 1.00 tokens/step), Latency: 94.83 s, Total time: 948.31 s, Avg input length: 123.10 tokens, Peak memory allocated: 15.22 GB
+2026-04-28 12:37:10.087 | INFO     | __main__:main:99 - Results saved to /data1/gx/d2Cache/benchmark_results/quick/llada-inst/NoCache/20260428_122020/results.json
+2026-04-28 12:37:10.087 | INFO     | __main__:main:102 - eval time: 948.31 seconds
+OK|N/A|5.04|94.83
+
+▶ [PrefixCache]
+  args: cache=prefix
+  output: benchmark_results/quick/llada-inst/PrefixCache/20260428_122020
+[2026-04-28 12:37:55,624][lm_eval.evaluator][INFO] - Running generate_until requests
+Generating...:   0%|          | 0/10 [00:00<?, ?it/s]Generating...:  10%|█         | 1/10 [01:09<10:24, 69.41s/it]Generating...:  20%|██        | 2/10 [02:20<09:21, 70.14s/it]Generating...:  30%|███       | 3/10 [03:20<07:38, 65.50s/it]Generating...:  40%|████      | 4/10 [04:20<06:22, 63.70s/it]Generating...:  50%|█████     | 5/10 [05:22<05:13, 62.75s/it]Generating...:  60%|██████    | 6/10 [06:21<04:07, 61.79s/it]Generating...:  70%|███████   | 7/10 [07:22<03:04, 61.51s/it]Generating...:  80%|████████  | 8/10 [08:22<02:01, 60.98s/it]Generating...:  90%|█████████ | 9/10 [09:23<01:00, 60.96s/it]Generating...: 100%|██████████| 10/10 [10:23<00:00, 60.63s/it]Generating...: 100%|██████████| 10/10 [10:23<00:00, 62.36s/it]
+2026-04-28 12:48:30.369 | INFO     | __main__:main:84 - {'humaneval': {'alias': 'humaneval',
+               'name': 'humaneval',
+               'pass@1,create_test': np.float64(0.9),
+               'pass@1_stderr,create_test': 0.09999999999999999,
+               'sample_len': 10}}
+2026-04-28 12:48:30.369 | INFO     | __main__:main:85 - Throughput: 7.19 tokens/sec, Tokens per step: 0.98 tokens/step (full: 8.40 tokens/sec, 1.00 tokens/step), Latency: 61.16 s, Total time: 611.60 s, Avg input length: 123.10 tokens, Peak memory allocated: 16.25 GB
+2026-04-28 12:48:30.372 | INFO     | __main__:main:99 - Results saved to /data1/gx/d2Cache/benchmark_results/quick/llada-inst/PrefixCache/20260428_122020/results.json
+2026-04-28 12:48:30.372 | INFO     | __main__:main:102 - eval time: 611.60 seconds
+OK|N/A|7.19|61.16
+
+▶ [SW_W16]
+  args: cache=sw cache.window_size=16
+  output: benchmark_results/quick/llada-inst/SW_W16/20260428_122020
+[2026-04-28 12:49:11,459][lm_eval.evaluator][INFO] - Running generate_until requests
+Generating...:   0%|          | 0/10 [00:00<?, ?it/s]Generating...:  10%|█         | 1/10 [00:43<06:28, 43.21s/it]Generating...:  20%|██        | 2/10 [01:24<05:36, 42.05s/it]Generating...:  30%|███       | 3/10 [02:05<04:51, 41.66s/it]Generating...:  40%|████      | 4/10 [02:45<04:06, 41.04s/it]Generating...:  50%|█████     | 5/10 [03:25<03:23, 40.72s/it]Generating...:  60%|██████    | 6/10 [04:06<02:42, 40.53s/it]Generating...:  70%|███████   | 7/10 [04:46<02:01, 40.40s/it]Generating...:  80%|████████  | 8/10 [05:26<01:20, 40.30s/it]Generating...:  90%|█████████ | 9/10 [06:05<00:39, 39.83s/it]Generating...: 100%|██████████| 10/10 [06:49<00:00, 41.19s/it]Generating...: 100%|██████████| 10/10 [06:49<00:00, 40.93s/it]
+2026-04-28 12:56:12.082 | INFO     | __main__:main:84 - {'humaneval': {'alias': 'humaneval',
+               'name': 'humaneval',
+               'pass@1,create_test': np.float64(0.0),
+               'pass@1_stderr,create_test': 0.0,
+               'sample_len': 10}}
+2026-04-28 12:56:12.082 | INFO     | __main__:main:85 - Throughput: 9.73 tokens/sec, Tokens per step: 0.76 tokens/step (full: 12.87 tokens/sec, 1.00 tokens/step), Latency: 39.85 s, Total time: 398.53 s, Avg input length: 123.10 tokens, Peak memory allocated: 16.12 GB
+2026-04-28 12:56:12.085 | INFO     | __main__:main:99 - Results saved to /data1/gx/d2Cache/benchmark_results/quick/llada-inst/SW_W16/20260428_122020/results.json
+2026-04-28 12:56:12.085 | INFO     | __main__:main:102 - eval time: 398.53 seconds
+OK|N/A|9.73|39.85
+
+▶ [SW_W32]
+  args: cache=sw cache.window_size=32
+  output: benchmark_results/quick/llada-inst/SW_W32/20260428_122020
+[2026-04-28 12:56:53,136][lm_eval.evaluator][INFO] - Running generate_until requests
+Generating...:   0%|          | 0/10 [00:00<?, ?it/s]Generating...:  10%|█         | 1/10 [00:44<06:43, 44.78s/it]Generating...:  20%|██        | 2/10 [01:25<05:37, 42.22s/it]Generating...:  30%|███       | 3/10 [02:04<04:46, 40.92s/it]Generating...:  40%|████      | 4/10 [02:42<03:59, 39.87s/it]Generating...:  50%|█████     | 5/10 [03:24<03:22, 40.42s/it]Generating...:  60%|██████    | 6/10 [04:05<02:42, 40.72s/it]Generating...:  70%|███████   | 7/10 [04:46<02:02, 40.86s/it]Generating...:  80%|████████  | 8/10 [05:27<01:21, 40.84s/it]Generating...:  90%|█████████ | 9/10 [06:08<00:40, 40.77s/it]Generating...: 100%|██████████| 10/10 [06:48<00:00, 40.70s/it]Generating...: 100%|██████████| 10/10 [06:48<00:00, 40.86s/it]
+2026-04-28 13:03:52.675 | INFO     | __main__:main:84 - {'humaneval': {'alias': 'humaneval',
+               'name': 'humaneval',
+               'pass@1,create_test': np.float64(0.0),
+               'pass@1_stderr,create_test': 0.0,
+               'sample_len': 10}}
+2026-04-28 13:03:52.675 | INFO     | __main__:main:85 - Throughput: 9.80 tokens/sec, Tokens per step: 0.76 tokens/step (full: 12.88 tokens/sec, 1.00 tokens/step), Latency: 39.82 s, Total time: 398.20 s, Avg input length: 123.10 tokens, Peak memory allocated: 16.12 GB
+2026-04-28 13:03:52.678 | INFO     | __main__:main:99 - Results saved to /data1/gx/d2Cache/benchmark_results/quick/llada-inst/SW_W32/20260428_122020/results.json
+2026-04-28 13:03:52.678 | INFO     | __main__:main:102 - eval time: 398.20 seconds
+OK|N/A|9.80|39.82
+
+▶ [SW_W64]
+  args: cache=sw cache.window_size=64
+  output: benchmark_results/quick/llada-inst/SW_W64/20260428_122020
+[2026-04-28 13:04:34,144][lm_eval.evaluator][INFO] - Running generate_until requests
+Generating...:   0%|          | 0/10 [00:00<?, ?it/s]Generating...:  10%|█         | 1/10 [00:43<06:28, 43.21s/it]Generating...:  20%|██        | 2/10 [01:24<05:36, 42.12s/it]Generating...:  30%|███       | 3/10 [02:05<04:52, 41.75s/it]Generating...:  40%|████      | 4/10 [02:47<04:09, 41.63s/it]Generating...:  50%|█████     | 5/10 [03:28<03:27, 41.59s/it]Generating...:  60%|██████    | 6/10 [04:10<02:46, 41.52s/it]Generating...:  70%|███████   | 7/10 [04:52<02:04, 41.61s/it]Generating...:  80%|████████  | 8/10 [05:33<01:23, 41.68s/it]Generating...:  90%|█████████ | 9/10 [06:15<00:41, 41.74s/it]Generating...: 100%|██████████| 10/10 [06:57<00:00, 41.77s/it]Generating...: 100%|██████████| 10/10 [06:57<00:00, 41.76s/it]
+2026-04-28 13:11:43.899 | INFO     | __main__:main:84 - {'humaneval': {'alias': 'humaneval',
+               'name': 'humaneval',
+               'pass@1,create_test': np.float64(0.0),
+               'pass@1_stderr,create_test': 0.0,
+               'sample_len': 10}}
+2026-04-28 13:11:43.900 | INFO     | __main__:main:85 - Throughput: 9.57 tokens/sec, Tokens per step: 0.76 tokens/step (full: 12.61 tokens/sec, 1.00 tokens/step), Latency: 40.62 s, Total time: 406.25 s, Avg input length: 123.10 tokens, Peak memory allocated: 16.13 GB
+2026-04-28 13:11:43.902 | INFO     | __main__:main:99 - Results saved to /data1/gx/d2Cache/benchmark_results/quick/llada-inst/SW_W64/20260428_122020/results.json
+2026-04-28 13:11:43.902 | INFO     | __main__:main:102 - eval time: 406.25 seconds
+OK|N/A|9.57|40.62
+
+============================================
+ 验证完成
+ 结果目录: benchmark_results/quick/llada-inst/
+============================================
+============================================
+ SlidingWindowCache 公平对比测试
+============================================
+模型:     llada-inst
+数据集:   gsm8k,humaneval
+种子:     42
+快速模式: false
+仅SW:     false
+时间:     20260428_131343
+============================================
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  数据集: gsm8k
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+▶ 运行: NoCache
+  参数: 
+  输出: benchmark_results/llada-inst/gsm8k/NoCache/20260428_131343
