@@ -1,5 +1,7 @@
 # An example to evaluate parallel decoding on LLaDA-8B-Instruct/HumanEval
 # More methods please refer to docs
+CUDA_VISIBLE_DEVICES=1
+LLADA_INST_PATH=/data1/gx/Sparse-dLLM/LLaDA-8B-Instruct/
 
 accelerate launch \
     --num_machines 1 \
