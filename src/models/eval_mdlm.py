@@ -49,7 +49,8 @@ class EvalMDLM(TemplateLM):
         # setup custom properties
         self.cfg = cfg
         self._metrics: dict[str, float | None] = {}
-        self.device = self.accelerator.device
+        # fixed
+        # self.device = self.accelerator.device
         self.extra_gen_kwargs = kwargs.get("extra_gen_kwargs", {})
 
     @property
