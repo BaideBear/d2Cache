@@ -3,6 +3,8 @@ __pycache__/
 *.py[codz]
 *$py.class
 
+*/nohup.out
+
 # C extensions
 *.so
 
@@ -207,6 +209,7 @@ marimo/_lsp/
 __marimo__/
 
 outputs/
+benchmark_results/
 cache-*.arrow
 results*/
 debug.ipynb

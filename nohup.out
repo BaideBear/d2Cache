@@ -1,74 +1,0 @@
-ipex flag is deprecated, will be removed in Accelerate v1.10. From 2.7.0, PyTorch has all needed optimizations for Intel CPU and XPU.
-The following values were not passed to `accelerate launch` and had defaults used instead:
-	`--mixed_precision` was set to a value of `'no'`
-	`--dynamo_backend` was set to a value of `'no'`
-To avoid this warning pass in values for each of the problematic parameters or run `accelerate config`.
-2026-04-28 11:56:32.097 | INFO     | src.utils:pre_initialize:177 - Loading generation args from /data1/gx/d2Cache/configs/gen_args.py.
-2026-04-28 11:56:32.215 | INFO     | src.utils:pre_initialize:207 - {'strategy': 'vanilla', 'threshold': None, 'factor': None, 'alg': 'maskgit_plus', 'gen_length': 512, 'block_length': 32, 'num_transfer_tokens': 1, 'temperature': 0.0, 'top_p': None, 'top_k': None, 'sigma': None, 'stop_until_eos': False, 'output_probs': False, 'mask_token_id': 126336, 'eos_token_id': 126081, 'pad_token_id': 126081}
-[2026-04-28 11:56:32,280][accelerate.utils.other][WARNING] - Detected kernel version 5.4.0, which is below the recommended minimum of 5.5.0; this can cause the process to hang. It is recommended to upgrade the kernel to the minimum version or higher.
-
-Loading checkpoint shards:   0%|          | 0/6 [00:00<?, ?it/s]
-Loading checkpoint shards: 100%|██████████| 6/6 [00:00<00:00, 105.88it/s]
-Error executing job with overrides: ['dataset.name=humaneval', 'dataset.size=10', 'batch_size=1', 'seed=1234', 'generation=vanilla', 'model=llada-inst']
-Traceback (most recent call last):
-  File "/data1/gx/d2Cache/eval.py", line 55, in main
-    model = load_eval_model(cfg, extra_gen_kwargs=extra_cfg.get("extra_gen_kwargs"))
-            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/data1/gx/d2Cache/src/utils/models.py", line 30, in load_eval_model
-    eval_model = LLaDAEval(cfg, **model_kwargs)
-                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/data1/gx/d2Cache/src/models/llada/eval_model.py", line 31, in __init__
-    super().__init__(cfg, **kwargs)
-  File "/data1/gx/d2Cache/src/models/eval_mdlm.py", line 52, in __init__
-    self.device = self.accelerator.device
-    ^^^^^^^^^^^
-AttributeError: property 'device' of 'LLaDAEval' object has no setter
-
-Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.
-Traceback (most recent call last):
-  File "/data1/gx/conda_envs/d2cache/bin/accelerate", line 6, in <module>
-    sys.exit(main())
-             ^^^^^^
-  File "/data1/gx/conda_envs/d2cache/lib/python3.11/site-packages/accelerate/commands/accelerate_cli.py", line 50, in main
-    args.func(args)
-  File "/data1/gx/conda_envs/d2cache/lib/python3.11/site-packages/accelerate/commands/launch.py", line 1199, in launch_command
-    simple_launcher(args)
-  File "/data1/gx/conda_envs/d2cache/lib/python3.11/site-packages/accelerate/commands/launch.py", line 785, in simple_launcher
-    raise subprocess.CalledProcessError(returncode=process.returncode, cmd=cmd)
-subprocess.CalledProcessError: Command '['/data1/gx/conda_envs/d2cache/bin/python3.11', 'eval.py', 'dataset.name=humaneval', 'dataset.size=10', 'batch_size=1', 'seed=1234', 'generation=vanilla', 'model=llada-inst']' returned non-zero exit status 1.
-
-ipex flag is deprecated, will be removed in Accelerate v1.10. From 2.7.0, PyTorch has all needed optimizations for Intel CPU and XPU.
-The following values were not passed to `accelerate launch` and had defaults used instead:
-	`--mixed_precision` was set to a value of `'no'`
-	`--dynamo_backend` was set to a value of `'no'`
-To avoid this warning pass in values for each of the problematic parameters or run `accelerate config`.
-2026-04-28 12:04:27.990 | INFO     | src.utils:pre_initialize:177 - Loading generation args from /data1/gx/d2Cache/configs/gen_args.py.
-2026-04-28 12:04:28.105 | INFO     | src.utils:pre_initialize:207 - {'strategy': 'vanilla', 'threshold': None, 'factor': None, 'alg': 'maskgit_plus', 'gen_length': 512, 'block_length': 32, 'num_transfer_tokens': 1, 'temperature': 0.0, 'top_p': None, 'top_k': None, 'sigma': None, 'stop_until_eos': False, 'output_probs': False, 'mask_token_id': 126336, 'eos_token_id': 126081, 'pad_token_id': 126081}
-[2026-04-28 12:04:28,188][accelerate.utils.other][WARNING] - Detected kernel version 5.4.0, which is below the recommended minimum of 5.5.0; this can cause the process to hang. It is recommended to upgrade the kernel to the minimum version or higher.
-Loading checkpoint shards:   0%|          | 0/6 [00:00<?, ?it/s]Loading checkpoint shards: 100%|██████████| 6/6 [00:00<00:00, 101.08it/s]
-[2026-04-28 12:04:47,862][lm_eval.tasks._index][WARNING] - Task 'humaneval' from /data1/gx/d2Cache/tasks/humaneval/humaneval.yaml overrides existing task from /data1/gx/conda_envs/d2cache/lib/python3.11/site-packages/lm_eval/tasks/humaneval/humaneval.yaml
-[2026-04-28 12:04:47,862][lm_eval.tasks._index][WARNING] - Task 'humaneval_64' from /data1/gx/d2Cache/tasks/humaneval/humaneval_64.yaml overrides existing task from /data1/gx/conda_envs/d2cache/lib/python3.11/site-packages/lm_eval/tasks/humaneval/humaneval_64.yaml
-[2026-04-28 12:04:47,862][lm_eval.tasks._index][WARNING] - Task 'humaneval_64_instruct' from /data1/gx/d2Cache/tasks/humaneval/humaneval_64_instruct.yaml overrides existing task from /data1/gx/conda_envs/d2cache/lib/python3.11/site-packages/lm_eval/tasks/humaneval/humaneval_64_instruct.yaml
-[2026-04-28 12:04:47,863][lm_eval.tasks._index][WARNING] - Task 'humaneval_instruct' from /data1/gx/d2Cache/tasks/humaneval/humaneval_instruct.yaml overrides existing task from /data1/gx/conda_envs/d2cache/lib/python3.11/site-packages/lm_eval/tasks/humaneval/humaneval_instruct.yaml
-[2026-04-28 12:04:47,863][lm_eval.tasks._index][WARNING] - Task 'humaneval_plus' from /data1/gx/d2Cache/tasks/humaneval/humaneval_plus.yaml overrides existing task from /data1/gx/conda_envs/d2cache/lib/python3.11/site-packages/lm_eval/tasks/humaneval/humaneval_plus.yaml
-[2026-04-28 12:04:47,863][lm_eval.tasks._index][WARNING] - Task 'math_word_problems' from None overrides existing task from None
-[2026-04-28 12:04:47,898][lm_eval.evaluator][INFO] - Setting random seed to 1234 | Setting numpy seed to 1234 | Setting torch manual seed to 1234 | Setting fewshot manual seed to 1234
-[2026-04-28 12:04:47,898][lm_eval.evaluator][INFO] - Using pre-initialized model
-Downloading builder script: 0.00B [00:00, ?B/s]Downloading builder script: 9.18kB [00:00, 510kB/s]
-Downloading extra modules: 0.00B [00:00, ?B/s]Downloading extra modules: 6.10kB [00:00, 2.22MB/s]
-Generating test split:   0%|          | 0/164 [00:00<?, ? examples/s]Generating test split: 100%|██████████| 164/164 [00:00<00:00, 1145.69 examples/s]Generating test split: 100%|██████████| 164/164 [00:00<00:00, 1062.94 examples/s]
-[2026-04-28 12:05:13,638][lm_eval.evaluator_utils][INFO] - Selected tasks:
-[2026-04-28 12:05:13,639][lm_eval.evaluator_utils][INFO] - Task: humaneval (/data1/gx/d2Cache/tasks/humaneval/humaneval.yaml)
-[2026-04-28 12:05:13,639][lm_eval.evaluator][INFO] - humaneval: Using gen_kwargs: {'until': ['\nclass', '\ndef', '\n#', '\nif', '\nprint'], 'max_gen_toks': 1024, 'do_sample': False}
-[2026-04-28 12:05:13,639][lm_eval.api.task][INFO] - Building contexts for humaneval on rank 0...
-  0%|          | 0/10 [00:00<?, ?it/s]100%|██████████| 10/10 [00:00<00:00, 288.51it/s]
-[2026-04-28 12:05:13,675][lm_eval.evaluator][INFO] - Running generate_until requests
-Generating...:   0%|          | 0/10 [00:00<?, ?it/s]Generating...:  10%|█         | 1/10 [00:01<00:15,  1.73s/it]Generating...: 100%|██████████| 10/10 [00:01<00:00,  5.63it/s]
-2026-04-28 12:05:26.854 | INFO     | __main__:main:84 - {'humaneval': {'alias': 'humaneval',
-               'name': 'humaneval',
-               'pass@1,create_test': np.float64(0.0),
-               'pass@1_stderr,create_test': 0.0,
-               'sample_len': 10}}
-2026-04-28 12:05:26.854 | INFO     | __main__:main:85 - Throughput: 0.00 tokens/sec, Tokens per step: 0.00 tokens/step (full: 0.00 tokens/sec, 0.00 tokens/step), Latency: 0.00 s, Total time: 1.76 s, Avg input length: 0.00 tokens, Peak memory allocated: 14.94 GB
-2026-04-28 12:05:26.856 | INFO     | __main__:main:99 - Results saved to /data1/gx/d2Cache/outputs/2026-04-28/12-04-26/results.json
-2026-04-28 12:05:26.857 | INFO     | __main__:main:102 - eval time: 1.76 seconds

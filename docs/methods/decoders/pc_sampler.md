@@ -118,67 +118,74 @@ Token:     "the"    "is"    "algorithm"   "function"
 | `temperature` | float | 0.0 | 采样温度 |
 | `alg` | str | "maskgit_plus" | 置信度计算算法 |
 
-## 代码流程分析
+## 详细代码流程分析
 
-### Token 频率加载
+PC-Sampler 的实现嵌入在 `vanilla_generate` 的参数传递中，核心校准逻辑位于 `src/generation/utils.py` 的 `sample_tokens` 函数内部。当用户设置 `debias=True` 时，`sample_tokens` 在校准阶段使用词频统计修正置信度，再通过 `generate_step` → `confidence_unmasking` 进行位置选择。
 
-在 `sample_tokens` 函数中，token 频率在首次调用时加载：
+### debias 参数在 generate_step 中的传递
 
 ```python
-# src/generation/utils.py
-
-_token_freq: torch.Tensor | None = None
-
-def sample_tokens(
+# 源文件: src/generation/vanilla.py L93-L101
+confidence, x0, p = sample_tokens(
     logits,
-    temperature=0.0,
-    top_p=None,
-    top_k=None,
-    debias=False,
-    clip_alpha=None,
-    alg="maskgit_plus",
-):
-    global _token_freq
-    
-    # ... 标准采样逻辑 ...
-    
-    epsilon = 1e-10
-    if debias:
-        alpha = clip_alpha if clip_alpha is not None else 10.0
-        if _token_freq is None:
-            raise ValueError("Token frequency not initialized for debiasing.")
-        _token_freq = _token_freq.to(device=logits.device, dtype=logits.dtype)
-        
-        # 核心校准公式
-        confidence = torch.clamp_max(
-            -confidence * torch.log(_token_freq[x0] + epsilon), 
-            max=alpha
-        )
+    temperature=temperature,
+    top_p=top_p,
+    top_k=top_k,
+    debias=debias,
+    clip_alpha=clip_alpha,
+    alg=alg,
+)
 ```
 
-### Token 频率初始化
+**逐行讲解：**
 
-在 `prepare_logits_for_generation` 中根据模型类型加载频率：
+| 行号 | 说明 |
+|------|------|
+| L93-L101 | `sample_tokens` 接收 `debias`（布尔，启用位置感知频率校准）和 `clip_alpha`（浮点，校准后置信度的上界裁剪值）；返回值 `confidence` (B, G) 已经是校准后的分数（若 debias=True），后续 `confidence_unmasking` 直接使用该校准后的分数进行 top-k 选择 |
+
+### vanilla_generate 中的 debias 参数入口
 
 ```python
-def prepare_logits_for_generation(model, logits: torch.Tensor):
-    global _token_freq
-    if isinstance(model, LLaDAModelLM):
-        _token_freq = get_token_freq("llada", model.config.vocab_size)
-    elif isinstance(model, DreamModel):
-        _token_freq = get_token_freq("dream", model.config.vocab_size)
-    # ...
+# 源文件: src/generation/vanilla.py L291-L293
+# PC sampler
+debias: bool = False,
+clip_alpha: float | None = None,
 ```
 
-### 频率数据来源
+**逐行讲解：**
+- `vanilla_generate` 函数签名中声明 `debias`（默认 False）和 `clip_alpha`（默认 None）参数
+- 这两个参数原封不动传递给 `generate_step`（L415-L418），再由 `generate_step` 传给 `sample_tokens`
 
-Token 频率统计存储在 JSON 文件中：
+### confidence_unmasking 如何使用校准后的分数
 
+```python
+# 源文件: src/generation/vanilla.py L356-L376
+def unmasking_fn(
+    active_seq_idx: torch.Tensor,
+    scores: torch.Tensor,
+    probs: torch.Tensor,
+    transfer_index_mask: torch.Tensor,
+    block_mask: torch.Tensor,
+    num_transfer_tokens: int,
+) -> tuple[tuple[torch.Tensor, ...], dict[str, Any]]:
+    return (
+        confidence_unmasking(
+            scores=scores,
+            transfer_index_mask=transfer_index_mask & block_mask,
+            min_transfer_tokens=num_transfer_tokens,
+            threshold=threshold,
+            factor=factor,
+            gamma=gamma,
+            p=probs,
+        ),
+        {},
+    )
 ```
-src/third_party/
-├── llada_corpus.json  # LLaDA 模型的 token 频率
-└── dream_corpus.json  # Dream 模型的 token 频率
-```
+
+**逐行讲解：**
+- `scores` 参数已包含经过 `sample_tokens`（含 debias 校准）和可选 `certainty_density`（sigma）处理后的分数
+- `confidence_unmasking` 在不传 threshold/factor/gamma 时进入 top-k 回退（L245-L267），直接对 `scores` 做 top-k 选择
+- 因此 debias 的校准效果最终通过 `scores` 影响位置选择的排序
 
 ## Token 选择策略
 

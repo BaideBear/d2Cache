@@ -137,63 +137,53 @@ EB-Sampler 的核心洞察是：
 | `block_length` | int | - | 块大小 |
 | `num_transfer_tokens` | int | 1 | 每步最少解码数量 |
 
-## 代码流程分析
+## 详细代码流程分析
 
-### 核心实现
+EB-Sampler 的实现位于 `src/generation/vanilla.py` 的 `confidence_unmasking` 函数（L225-L237），通过 `gamma` 参数激活。调用链路：`vanilla_generate` → `unmasking_fn`（闭包传递 gamma）→ `confidence_unmasking(gamma=gamma)`。
 
-在 `confidence_unmasking` 函数中：
+### EB-Sampler 熵有界解码
 
 ```python
+# 源文件: src/generation/vanilla.py L225-L237
 elif gamma is not None:
-    # EB sampler: 基于熵界选择 token
+    # 1.c EB sampler: select tokens based on entropy bound
     if p is None:
         raise ValueError(
             "Probabilities of all tokens `p` must be provided for EB sampler."
         )
-    
-    # 1. 按置信度降序排序
     _, ids = torch.sort(confidence, dim=-1, descending=True)
-    
-    # 2. 计算每个位置的熵
     entropy = torch.gather(
-        dists.Categorical(probs=p.float()).entropy(), 
-        dim=-1, 
-        index=ids
+        dists.Categorical(probs=p.float()).entropy(), dim=-1, index=ids
     )
-    
-    # 3. 计算累积熵和累积最大熵
     acc_entropy = torch.cumsum(entropy, dim=1)
     cummax_entropy = torch.cummax(entropy, dim=0).values
-    
-    # 4. 确定解码数量
     num_transfer_tokens = (acc_entropy - cummax_entropy <= gamma).sum(dim=1)
 ```
 
-### 熵的计算
+**逐行讲解：**
 
-使用 PyTorch 的分布模块计算熵：
+| 行号 | 说明 |
+|------|------|
+| L225 | `elif gamma is not None` — 当 gamma 不为 None 时进入 EB-Sampler 分支（与 threshold/factor 互斥） |
+| L226-L229 | `p`（完整概率分布 `(B, G, V)`）必须提供，因为需要计算每个位置的完整熵 |
+| L230 | `torch.sort(confidence, dim=-1, descending=True)` — 按置信度降序排列；`ids` 为排序后的索引 |
+| L231-L233 | `dists.Categorical(probs=p.float()).entropy()` 计算每个位置完整概率分布的熵 `(B, G)`；`torch.gather` 按 ids 重排熵值使其与置信度降序对齐 |
+| L234 | `torch.cumsum(entropy, dim=1)` — 按置信度降序排列后的累积熵 `acc_entropy` (B, G) |
+| L235 | `torch.cummax(entropy, dim=0).values` — 累积最大熵 `cummax_entropy`（沿 dim=0 即 batch 维度取累积最大值，追踪已选 token 中最大熵） |
+| L236 | `(acc_entropy - cummax_entropy <= gamma).sum(dim=1)` — 统计每个序列中满足 `acc_entropy[k] - cummax_entropy[k] <= gamma` 的位置数，即该步可解码的 token 数 |
 
-```python
-import torch.distributions as dists
-
-# 熵的计算
-entropy = dists.Categorical(probs=p.float()).entropy()
-
-# 等价于
-entropy = -torch.sum(p * torch.log(p + eps), dim=-1)
-```
-
-### 完整调用示例
+### gamma 参数在 vanilla_generate 中的入口
 
 ```python
-# 在 vanilla_generate 中使用 EB-Sampler
-result = vanilla_generate(
-    model=model,
-    input_ids=input_ids,
-    gamma=0.001,  # 启用 EB-Sampler
-    output_probs=True,  # 必须输出概率
-)
+# 源文件: src/generation/vanilla.py L289, L369
+gamma: float | None = None,
+...
+gamma=gamma,
 ```
+
+**逐行讲解：**
+- `vanilla_generate` 接收 `gamma` 参数，默认为 None（不启用 EB-Sampler）
+- 在 `unmasking_fn` 闭包（L356-L376）中，`gamma` 被传递给 `confidence_unmasking`，触发 L225 分支逻辑
 
 ## Token 选择策略
 

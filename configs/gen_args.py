@@ -77,6 +77,8 @@ def get_generation_args(task: str, model: str, cache: str | None = None) -> dict
             # to achieve this, pass `generation.block_length=32 cache.inflate_w=4` in cli
         case "prefix":
             block_length = 32
+        case "sw":
+            block_length = gen_length
         case "dllm":
             kp, kr = 50, 4
             match task:

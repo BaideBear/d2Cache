@@ -131,32 +131,43 @@ selected_tokens = top-n tokens
 | `temperature` | float | 0.0 | 采样温度 |
 | `alg` | str | "maskgit_plus" | 置信度计算算法 |
 
-## 代码流程分析
+## 详细代码流程分析
 
-### Threshold-based 实现
+Parallel 解码的实现位于 `src/generation/vanilla.py` 的 `confidence_unmasking` 函数（L142-L269）中，通过 `threshold` 或 `factor` 参数激活。调用链路：`vanilla_generate` → `unmasking_fn`（闭包）→ `confidence_unmasking`。
 
-在 `confidence_unmasking` 函数中：
+### threshold-based 并行解码
 
 ```python
+# 源文件: src/generation/vanilla.py L199-L211
 if threshold is not None:
-    # 1. 选择所有置信度 >= threshold 的 token
+    # 1.a select all tokens whose confidence is above the threshold
     col_indices = torch.nonzero(confidence >= threshold, as_tuple=False)[:, 1]
     counts = torch.sum(confidence >= threshold, dim=-1).cpu().tolist()
     transfer_index = list(torch.split(col_indices, counts))
-    
-    # 2. 检查是否超过最大限制
+    # check if there are too many tokens to be decoded in any sequence
+    # in this case, we only keep the top-k tokens with highest confidence
+    # to do so, we simply clear the transfer_index for those sequences and fall back to top-k selection later
     for i, t in enumerate(transfer_index):
         if t.numel() > max_transfer_tokens[i]:
-            # 如果选中太多，回退到 top-k 选择
             transfer_index[i] = torch.tensor([])
             num_transfer_tokens[i] = max_transfer_tokens[i]
 ```
 
-### Factor-based 实现
+**逐行讲解：**
+
+| 行号 | 说明 |
+|------|------|
+| L200 | `torch.nonzero(confidence >= threshold, as_tuple=False)[:, 1]` — 找出所有 batch 中置信度达到阈值的列索引，`[:, 1]` 取位置维，得到跨 batch 拼接的一维张量 |
+| L201 | `torch.sum(confidence >= threshold, dim=-1).cpu().tolist()` — 统计每个 batch 中满足条件的数量 |
+| L202 | `torch.split(col_indices, counts)` — 按每个 batch 的数量将索引切分回各序列 |
+| L204-L206 | 循环检查：若某序列选中数量超过 `max_transfer_tokens[i]`（当前块内可转移位置总数），清空该序列的 transfer_index 并将 `num_transfer_tokens` 上调为上限值，后续由 top-k 回退（L245-L267）补足 |
+
+### factor-based 并行解码
 
 ```python
+# 源文件: src/generation/vanilla.py L212-L224
 elif factor is not None:
-    # 找到最优的 n 值
+    # 1.b unmask top-n* tokens, where n* = argmax_{n} (n + 1)(1 - nth_largest_conf) < factor
     num_unmasked_tokens = torch.sum(transfer_index_mask, dim=-1, keepdim=True)
     for i in range(batch_size):
         sorted_conf, _ = torch.sort(
@@ -164,45 +175,63 @@ elif factor is not None:
             dim=-1,
             descending=True,
         )
-        # 寻找最大的 n 使得 (n+1) * (1 - nth_conf) < factor
         for n in range(1, num_unmasked_tokens[i] + 1):
             if (n + 1) * (1 - sorted_conf[n - 1]) >= factor:
                 break
-        # 选择 top-(n-1) 个 token
-        transfer_index[i] = torch.topk(
-            confidence[i], 
-            min(n - 1, int(max_transfer_tokens[i].item())), 
-            dim=-1
-        ).indices
+        transfer_index[i] = torch.topk(confidence[i], min(n - 1, int(max_transfer_tokens[i].item())), dim=-1).indices
 ```
 
-### 保底机制
+**逐行讲解：**
 
-当 threshold/factor 选择不足 `num_transfer_tokens` 时，使用 top-k 作为保底：
+| 行号 | 说明 |
+|------|------|
+| L214 | `num_unmasked_tokens` — 每个序列当前块内可转移位置的数量 |
+| L215-L218 | 对该序列可转移位置的置信度降序排序得到 `sorted_conf` |
+| L219-L221 | 从 n=1 递增，当 `(n+1)*(1-sorted_conf[n-1]) >= factor` 时停止，`sorted_conf[n-1]` 是第 n 高的置信度 |
+| L224 | `torch.topk(confidence[i], min(n-1, max_transfer_tokens), dim=-1)` — 取 top-(n-1) 个索引，用 `max_transfer_tokens` 做上限保护 |
+
+### 保底回退机制
 
 ```python
+# 源文件: src/generation/vanilla.py L239-L267
+num_transfer_tokens = torch.clamp(
+    num_transfer_tokens,
+    min=min_transfer_tokens,
+    max=max_transfer_tokens,
+)
+
 if fallback_indices := [
-    i for i, t in enumerate(transfer_index) 
-    if t.numel() < num_transfer_tokens[i]
+    i for i, t in enumerate(transfer_index) if t.numel() < num_transfer_tokens[i]
 ]:
     confidence_subset = confidence[fallback_indices]
     topk_transfer_index = [
         torch.topk(
             confidence_subset[i],
-            int(torch.min(
-                transfer_index_mask[fallback_indices[i]].sum(),
-                num_transfer_tokens[fallback_indices[i]],
-            )),
+            int(
+                torch.min(
+                    transfer_index_mask[fallback_indices[i]].sum(),
+                    num_transfer_tokens[fallback_indices[i]],
+                )
+            ),
             dim=-1,
         ).indices
         for i in range(confidence_subset.size(0))
     ]
-    # 合并结果
+    source_iter = iter(topk_transfer_index)
     transfer_index = [
         next(source_iter) if i in fallback_indices else t
         for i, t in enumerate(transfer_index)
     ]
 ```
+
+**逐行讲解：**
+
+| 行号 | 说明 |
+|------|------|
+| L239-L243 | `torch.clamp` 确保 `num_transfer_tokens` 介于 `min_transfer_tokens` 和 `max_transfer_tokens` 之间 |
+| L245-L247 | `fallback_indices` — 收集 transfer_index 数量不足 `num_transfer_tokens` 的序列索引 |
+| L248-L258 | 对需要回退的序列，取其置信度中 top-k 个最高分位置（k = `num_transfer_tokens[i]` 且不超过可转移位置总数） |
+| L263-L266 | 合并结果：fallback_indices 中的位置取 topk_transfer_index 的对应值，其余保持原样 |
 
 ## Token 选择策略
 
